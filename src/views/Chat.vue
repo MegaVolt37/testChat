@@ -4,6 +4,9 @@
     <router-link to="/">Домой</router-link>
 
     <div class="chat__messages">
+      <transition name="loader">
+        <Loader class="loader__img" v-if="loading" />
+      </transition>
       <ul class="chat__messages-list" ref="messageBlock">
         <li class="chat__messages-item" v-for="(message, index) in messages" :key="index">{{ message }}</li>
       </ul>
@@ -11,13 +14,14 @@
     <div><input type="text" v-model="message" placeholder="Введите сообщение" @keyup.enter="sendMessage"><button
         @click="sendMessage">Отправить</button></div>
     <transition name="error">
-      <div class="error__block" v-if="error">Произошла ошибка</div>
+      <div class="error__block" v-if="error">Произошла ошибка <br>{{ error }}</div>
     </transition>
   </div>
 </template>
 
 <script>
 import axios from "axios";
+import Loader from "@/components/Loader.vue"
 export default {
   data() {
     return {
@@ -26,6 +30,7 @@ export default {
       message: "",
       error: null,
       next: true,
+      loading: false,
     };
   },
   methods: {
@@ -36,11 +41,12 @@ export default {
       this.$nextTick(this.scrollBlock)
     },
     async getMessages() {
-      this.error = null
+      this.error = null;
+      this.loading = true;
       try {
         const { data } = await axios.get(`https://numia.ru/api/getMessages?offset=${this.page}`)
         if (!this.messages.length) {
-          this.messages = data.result.reverse();
+          this.messages = data.result?.reverse();
           this.$nextTick(this.scrollBlock);
         } else {
           if (data.result) { // так сделано потому что ошибка летит под кодом 200
@@ -69,6 +75,8 @@ export default {
         setTimeout(() => {
           this.error = null;
         }, 3000);
+      } finally {
+        this.loading = false;
       }
     },
     saveBlockPosition(height) {
@@ -84,19 +92,22 @@ export default {
     },
     scrolling() {
       const block = this.$refs.messageBlock;
-      block.addEventListener("scroll", () => {
-        if (block.scrollTop === 0 && this.next !== null) {
-          this.getMessages();
-        }
-      });
+      if (block.scrollTop === 0 && this.next !== null) {
+        this.getMessages();
+      }
     },
-
   },
   created() {
     this.getMessages();
   },
   mounted() {
-    this.scrolling();
+    this.$refs.messageBlock.addEventListener("scroll", this.scrolling);
+  },
+  beforeUnmount() {
+    this.$refs.messageBlock.removeEventListener("scroll", this.scrolling);
+  },
+  components: {
+    Loader,
   },
 }
 </script>
@@ -138,6 +149,22 @@ export default {
   background-color: #fff;
   z-index: 10;
   padding: 30px;
+}
+
+.loader__img {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.loader-enter-active,
+.loader-leave-active {
+  transition: all 1s ease;
+}
+
+.loader-enter-from,
+.loader-leave-to {
+  opacity: 0;
 }
 
 .error-enter-active,
