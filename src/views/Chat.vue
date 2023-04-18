@@ -70,7 +70,7 @@ export default {
       }
       catch (e) {
         console.error(e)
-        this.showError(data);
+        this.showError(e);
       } finally {
         this.loading = false;
       }
@@ -96,7 +96,7 @@ export default {
       this.error = value;
       setTimeout(() => {
         this.error = null;
-        location.reload(); // Сделано потому что летит ошибка под статусом 200. Пользователя нужно уводить со страницы
+        location.reload();
       }, 3000);
     },
   },
