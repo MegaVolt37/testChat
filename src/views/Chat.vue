@@ -1,8 +1,6 @@
 <template>
   <div class="page__chat">
     <h1>Чат</h1>
-    <router-link to="/">Домой</router-link>
-
     <div class="chat__messages">
       <transition name="loader">
         <Loader class="loader__img" v-if="loading" />
@@ -46,8 +44,12 @@ export default {
       try {
         const { data } = await axios.get(`https://numia.ru/api/getMessages?offset=${this.page}`)
         if (!this.messages.length) {
-          this.messages = data.result?.reverse();
-          this.$nextTick(this.scrollBlock);
+          if (data.result) {
+            this.messages = data.result?.reverse();
+            this.$nextTick(this.scrollBlock);
+          } else {
+            this.showError(data);
+          }
         } else {
           if (data.result) { // так сделано потому что ошибка летит под кодом 200
             if (data?.result?.length) {
@@ -61,20 +63,14 @@ export default {
               this.next = null;
             }
           } else {
-            this.error = data;
-            setTimeout(() => {
-              this.error = null;
-            }, 3000);
+            this.showError(data);
           }
         }
         this.page++;
       }
       catch (e) {
         console.error(e)
-        this.error = e;
-        setTimeout(() => {
-          this.error = null;
-        }, 3000);
+        this.showError(data);
       } finally {
         this.loading = false;
       }
@@ -95,6 +91,13 @@ export default {
       if (block.scrollTop === 0 && this.next !== null) {
         this.getMessages();
       }
+    },
+    showError(value) {
+      this.error = value;
+      setTimeout(() => {
+        this.error = null;
+        location.reload(); // Сделано потому что летит ошибка под статусом 200. Пользователя нужно уводить со страницы
+      }, 3000);
     },
   },
   created() {
@@ -126,7 +129,7 @@ export default {
 }
 
 .chat__messages-list {
-  min-height: 400px;
+  min-height: 500px;
   max-height: 500px;
   overflow-y: auto;
   border: 1px solid orange;
